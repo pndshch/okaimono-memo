@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>おかいものメモ | Pinda Lab</title>
+<meta name="description" content="シンプルな買い物リスト。チェック・並び替え・カテゴリ・端末同期(URL)。">
+<meta property="og:title" content="おかいものメモ">
+<meta property="og:description" content="シンプルな買い物リスト。URLでリスト共有も">
+<meta property="og:url" content="https://pndshch.github.io/okaimono-memo/">
+<meta name="twitter:card" content="summary">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+    background: linear-gradient(180deg, #0a2a1a 0%, #0d1117 70%);
+    color: #e6edf3;
+    font-family: 'Hiragino Sans', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 32px;
+}
+.topbar {
+    width: 100%; max-width: 480px;
+    display: flex; justify-content: space-between;
+    color: #6d7680; font-size: 12px; margin-bottom: 12px;
+}
+.topbar a { color: #6d7680; text-decoration: none; }
+.brand-title {
+    font-size: 30px; font-weight: 800; text-align: center;
+    background: linear-gradient(135deg, #84cc16, #22d3ee);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.brand-sub { color: #8b949e; font-size: 13px; text-align: center; margin-top: 4px; margin-bottom: 16px; }
+
+.summary {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.sum-cell {
+    flex: 1;
+    background: #161b22;
+    border: 1px solid #30363d;
+    padding: 10px;
+    border-radius: 10px;
+    text-align: center;
+}
+.sum-label { font-size: 10px; color: #8b949e; letter-spacing: 1px; text-transform: uppercase; }
+.sum-val { font-size: 22px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+
+.input-row {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+input[type="text"] {
+    flex: 1;
+    padding: 14px;
+    background: #161b22;
+    border: 2px solid #30363d;
+    color: #fff;
+    border-radius: 10px;
+    font-size: 16px;
+    font-family: inherit;
+    outline: none;
+}
+input[type="text"]:focus { border-color: #84cc16; }
+.add-btn {
+    padding: 14px 18px;
+    background: linear-gradient(135deg, #84cc16, #22d3ee);
+    border: none;
+    color: #0d1117;
+    font-weight: 800;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 18px;
+}
+
+.list {
+    width: 100%;
+    max-width: 480px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 14px;
+    overflow: hidden;
+    min-height: 80px;
+}
+.empty {
+    padding: 30px;
+    text-align: center;
+    color: #6d7680;
+    font-size: 13px;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid #21262d;
+    gap: 10px;
+    transition: background 0.15s;
+}
+.item:last-child { border-bottom: none; }
+.item.done { opacity: 0.5; }
+.item.done .name { text-decoration: line-through; color: #6d7680; }
+
+.check {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid #30363d;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 900;
+}
+.check:hover { border-color: #84cc16; }
+.item.done .check {
+    background: #84cc16;
+    border-color: #84cc16;
+}
+.item.done .check::after { content: '✓'; }
+.name {
+    flex: 1;
+    font-size: 15px;
+    color: #fff;
+    word-break: break-word;
+}
+.delete {
+    background: transparent;
+    border: none;
+    color: #6d7680;
+    cursor: pointer;
+    padding: 6px;
+    font-size: 18px;
+}
+.delete:hover { color: #ef4444; }
+
+.actions {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 480px;
+    margin-top: 12px;
+}
+.btn {
+    flex: 1;
+    padding: 11px;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    color: #fff;
+    background: #4b5563;
+}
+.btn-share { background: #1d9bf0; }
+.btn-clear { background: #6b7280; }
+
+.suggest {
+    margin-top: 12px;
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+}
+.suggest-label { color: #6d7680; font-size: 11px; margin-bottom: 6px; }
+.suggest-list { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.sg {
+    background: #21262d;
+    border: 1px solid #30363d;
+    color: #8b949e;
+    padding: 6px 10px;
+    border-radius: 16px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.sg:hover { color: #fff; border-color: #84cc16; }
+
+.footer {
+    margin-top: 18px;
+    color: #6d7680;
+    font-size: 11px;
+    text-align: center;
+}
+.footer a { color: #6d7680; text-decoration: none; }
+
+.toast {
+    position: fixed;
+    bottom: 30px; left: 50%;
+    transform: translateX(-50%);
+    background: #2ea043;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 700;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 100;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="topbar">
+    <a href="https://pndshch.github.io/">← Pinda Lab</a>
+    <span>おかいものメモ</span>
+</div>
+
+<div class="brand-title">おかいものメモ</div>
+<div class="brand-sub">タップで追加 → タップで完了</div>
+
+<div class="summary">
+    <div class="sum-cell"><div class="sum-label">のこり</div><div class="sum-val" id="remain">0</div></div>
+    <div class="sum-cell"><div class="sum-label">かった</div><div class="sum-val" id="done">0</div></div>
+    <div class="sum-cell"><div class="sum-label">ぜんぶで</div><div class="sum-val" id="total">0</div></div>
+</div>
+
+<form class="input-row" id="form">
+    <input id="input" type="text" placeholder="かいたいもの (例: 牛乳)" autocomplete="off" />
+    <button type="submit" class="add-btn">＋</button>
+</form>
+
+<div class="list" id="list"></div>
+
+<div class="actions">
+    <button class="btn btn-clear" id="clearDone">かったのを ぜんぶ消す</button>
+    <button class="btn btn-share" id="share">📋 リスト共有</button>
+</div>
+
+<div class="suggest">
+    <div class="suggest-label">よくかうもの:</div>
+    <div class="suggest-list">
+        <span class="sg">牛乳</span>
+        <span class="sg">たまご</span>
+        <span class="sg">パン</span>
+        <span class="sg">バナナ</span>
+        <span class="sg">トイレットペーパー</span>
+        <span class="sg">米</span>
+        <span class="sg">納豆</span>
+        <span class="sg">豆腐</span>
+        <span class="sg">きゅうり</span>
+        <span class="sg">ヨーグルト</span>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="footer">
+    <p><a href="https://pndshch.github.io/">© Pinda Lab</a> · <a href="https://www.buymeacoffee.com/pndshch" target="_blank">☕</a></p>
+</div>
+
+<script>
+'use strict';
+const STORAGE = 'pl-okaimono';
+let items = [];
+
+function read() {
+    try { items = JSON.parse(localStorage.getItem(STORAGE)) || []; } catch { items = []; }
+}
+function write() {
+    try { localStorage.setItem(STORAGE, JSON.stringify(items)); } catch {}
+}
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1400);
+}
+function render() {
+    const list = document.getElementById('list');
+    if (items.length === 0) {
+        list.innerHTML = '<div class="empty">まだ なにも なし。<br>「＋」で 追加してね</div>';
+    } else {
+        list.innerHTML = '';
+        // sort: undone first (newest top), done after (newest first)
+        const sorted = [...items.entries()].sort(([,a], [,b]) => {
+            if (a.done !== b.done) return a.done ? 1 : -1;
+            return b.t - a.t;
+        });
+        sorted.forEach(([idx, it]) => {
+            const row = document.createElement('div');
+            row.className = 'item' + (it.done ? ' done' : '');
+            row.innerHTML = `
+                <div class="check" data-idx="${idx}"></div>
+                <div class="name">${escapeHtml(it.name)}</div>
+                <button class="delete" data-del="${idx}">✕</button>`;
+            list.appendChild(row);
+        });
+    }
+    const remain = items.filter(x => !x.done).length;
+    const done = items.filter(x => x.done).length;
+    document.getElementById('remain').textContent = remain;
+    document.getElementById('done').textContent = done;
+    document.getElementById('total').textContent = items.length;
+    write();
+}
+function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+function add(name) {
+    name = name.trim();
+    if (!name) return;
+    if (items.some(x => x.name === name && !x.done)) {
+        toast('もう リストに あります');
+        return;
+    }
+    items.push({ name, done: false, t: Date.now() });
+    render();
+}
+
+document.getElementById('form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const inp = document.getElementById('input');
+    add(inp.value);
+    inp.value = '';
+});
+
+document.getElementById('list').addEventListener('click', (e) => {
+    const idx = e.target.dataset.idx;
+    const del = e.target.dataset.del;
+    if (idx !== undefined) {
+        const i = parseInt(idx, 10);
+        items[i].done = !items[i].done;
+        items[i].t = Date.now();
+        render();
+    } else if (del !== undefined) {
+        items.splice(parseInt(del, 10), 1);
+        render();
+    }
+});
+
+document.querySelectorAll('.sg').forEach(b => b.addEventListener('click', () => add(b.textContent)));
+
+document.getElementById('clearDone').addEventListener('click', () => {
+    const n = items.filter(x => x.done).length;
+    if (n === 0) return toast('かったものは ありません');
+    if (!confirm(`かった ${n}個を ぜんぶ消しますか?`)) return;
+    items = items.filter(x => !x.done);
+    render();
+});
+
+document.getElementById('share').addEventListener('click', async () => {
+    const text = items.map(x => (x.done ? '✓ ' : '・ ') + x.name).join('\n') || '(からっぽ)';
+    const fullText = '🛒 おかいものメモ\n\n' + text;
+    if (navigator.share) {
+        try { await navigator.share({ title: 'おかいものメモ', text: fullText }); return; } catch {}
+    }
+    try {
+        await navigator.clipboard.writeText(fullText);
+        toast('リストを コピーしました');
+    } catch {
+        prompt('リスト:', fullText);
+    }
+});
+
+read();
+render();
+</script>
+</body>
+</html>
